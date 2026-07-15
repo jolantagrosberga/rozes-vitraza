@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="lv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rožu vitrāžas ģenerators</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#0d0a14;
+    --bg-mid:#1c1128;
+    --panel:#211433;
+    --panel-edge:#3a2a56;
+    --gold:#e8b923;
+    --coral:#e85d75;
+    --ink:#f2ecff;
+    --ink-dim:#b6a8d6;
+    --lead:#0a0710;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse 900px 500px at 50% -8%, rgba(155,77,202,0.28), transparent 60%),
+      linear-gradient(180deg,var(--bg-deep) 0%,var(--bg-mid) 45%,#171022 100%);
+    font-family:'Poppins',system-ui,sans-serif;
+    color:var(--ink);
+    padding:30px 16px 60px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+  header{text-align:center;margin-bottom:22px;}
+  h1{
+    font-family:'Cinzel',serif;font-weight:700;font-size:clamp(26px,4vw,40px);letter-spacing:0.02em;margin:0 0 10px;
+    background:linear-gradient(90deg,var(--gold),var(--coral) 45%,#9b4dca 75%,#2a3f8f);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  header p{color:var(--ink-dim);max-width:640px;margin:0 auto;font-size:14.5px;line-height:1.6;}
+  .info-toggle{display:inline-block;margin-top:12px;font-size:13px;color:var(--gold);cursor:pointer;border:1px solid rgba(232,185,35,0.4);padding:6px 14px;border-radius:20px;background:rgba(232,185,35,0.06);}
+  .info-toggle:hover{background:rgba(232,185,35,0.15);}
+  .info-box{max-width:680px;margin:14px auto 0;background:var(--panel);border:1px solid var(--panel-edge);border-radius:14px;padding:16px 20px;font-size:13.5px;line-height:1.65;color:var(--ink-dim);text-align:left;display:none;}
+  .info-box.open{display:block;}
+  .info-box b{color:var(--ink);}
+  .info-box ul{margin:8px 0 0;padding-left:18px;}
+
+  .tabbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:26px 0 20px;}
+  .tab{font-family:'Poppins',sans-serif;font-size:13.5px;font-weight:500;color:var(--ink-dim);background:var(--panel);border:1px solid var(--panel-edge);border-radius:30px;padding:10px 18px;cursor:pointer;transition:all .15s;}
+  .tab .n{color:var(--gold);font-weight:600;margin-right:6px;}
+  .tab:hover{color:var(--ink);border-color:var(--gold);}
+  .tab.active{background:linear-gradient(90deg,#3a2a56,#4a2c7a);color:var(--ink);border-color:var(--gold);}
+
+  .mode-panel{display:none;}
+  .mode-panel.active{display:block;}
+  .mode-desc{text-align:center;color:var(--ink-dim);font-size:13.5px;max-width:620px;margin:0 auto 20px;line-height:1.55;}
+
+  .stage{display:grid;grid-template-columns:1fr 1.25fr;gap:20px;}
+  .stage.single{grid-template-columns:1fr;max-width:560px;margin:0 auto;}
+  @media (max-width:860px){ .stage{grid-template-columns:1fr;} }
+
+  .panel{background:var(--panel);border:1px solid var(--panel-edge);border-radius:20px;padding:18px;position:relative;overflow:hidden;}
+  .panel::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 32%, rgba(232,185,35,0.10), transparent 65%);pointer-events:none;}
+  .panel h2{font-family:'Cinzel',serif;font-size:15px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--gold);margin:0 0 4px;}
+  .panel .sub{font-size:12px;color:var(--ink-dim);margin-bottom:12px;}
+
+  .canvas-holder{display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 42%, rgba(255,255,255,0.07), rgba(0,0,0,0.3) 78%);border-radius:16px;padding:8px;position:relative;}
+  svg{display:block;width:100%;height:auto;max-width:440px;filter:drop-shadow(0 0 5px rgba(255,255,255,0.10));}
+  .preview-holder svg{max-width:520px;}
+  .cell{cursor:pointer;stroke:var(--lead);stroke-width:2.1;transition:opacity .12s;fill-opacity:0.94;}
+  .cell:hover{opacity:0.8;}
+  .hub{cursor:pointer;stroke:var(--lead);stroke-width:2.4;}
+  .rim{fill:none;stroke:#4b3b73;stroke-width:2;opacity:0.55;}
+  .freehand-line{fill:none;stroke-linecap:round;stroke-linejoin:round;}
+
+  .ctrlbar{margin-top:18px;background:var(--panel);border:1px solid var(--panel-edge);border-radius:20px;padding:20px;}
+  .ctrl-row{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start;justify-content:space-between;}
+  .ctrl-group{flex:1 1 200px;}
+  .ctrl-group.wide{flex:1 1 320px;}
+  .ctrl-group label.title{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-dim);margin-bottom:9px;}
+  select.stylized{background:#33255a;color:var(--ink);border:1px solid var(--panel-edge);border-radius:10px;padding:9px 12px;font-family:'Poppins',sans-serif;font-size:13.5px;width:100%;cursor:pointer;}
+  .ring-shape-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;flex-wrap:wrap;}
+  .ring-shape-row span.rlabel{font-size:11.5px;color:var(--ink-dim);width:60px;flex-shrink:0;}
+  .chip{font-size:12px;padding:6px 11px;border-radius:16px;border:1px solid var(--panel-edge);background:rgba(255,255,255,0.05);color:var(--ink-dim);cursor:pointer;transition:all .15s;}
+  .chip.active{background:linear-gradient(90deg,#9b4dca,#4a2c7a);color:#fff;border-color:transparent;}
+  .swatches{display:flex;flex-wrap:wrap;gap:8px;}
+  .swatch{width:30px;height:30px;border-radius:8px;border:2px solid rgba(255,255,255,0.15);cursor:pointer;transition:transform .12s,border-color .12s;}
+  .swatch:hover{transform:scale(1.08);}
+  .swatch.selected{border-color:#fff;box-shadow:0 0 0 2px var(--gold);}
+  input[type=color].swatch{padding:0;}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  button.action{font-family:'Poppins',sans-serif;font-weight:500;font-size:13px;padding:10px 16px;border-radius:12px;border:none;cursor:pointer;transition:filter .15s,transform .1s;}
+  button.action:active{transform:translateY(1px);}
+  .btn-clear{background:rgba(255,255,255,0.08);color:var(--ink);border:1px solid var(--panel-edge);}
+  .btn-clear:hover{background:rgba(255,255,255,0.14);}
+  .btn-download{background:linear-gradient(90deg,var(--gold),var(--coral));color:#241238;font-weight:600;}
+  .btn-download:hover{filter:brightness(1.08);}
+  .btn-toggle{background:rgba(255,255,255,0.06);color:var(--ink-dim);border:1px solid var(--panel-edge);}
+  .btn-toggle.active{background:linear-gradient(90deg,#9b4dca,#4a2c7a);color:#fff;border-color:transparent;}
+
+  .canvas-stack{position:relative;width:100%;}
+  .canvas-stack canvas{width:100%;height:auto;border-radius:14px;display:block;}
+  .canvas-stack canvas:not(:first-child){position:absolute;top:0;left:0;}
+  #guideCanvas4{pointer-events:none;}
+
+  footer{text-align:center;margin-top:26px;color:var(--ink-dim);font-size:12px;opacity:0.7;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Rožu vitrāžas ģenerators</h1>
+    <p>Gotikas katedrālēs rožu logs bija gaismas un simbolu satikšanās vieta. Izvēlies vienu no četriem veidošanas režīmiem — no vienkāršas krāsošanas līdz pilnīgi brīvai zīmēšanai.</p>
+    <div class="info-toggle" id="infoToggle">ⓘ Par rožu vitrāžām</div>
+    <div class="info-box" id="infoBox">
+      <b>Īsumā par gotikas rožu logiem:</b>
+      <ul>
+        <li>Gotikas laikmetā smailā arka ļāva sienās veidot lielākas logu ailas — tā radās ažūra akmens traceja ar krāsainā stikla vitrāžām.</li>
+        <li>Slavenākā rožu vitrāža rotā Šartras katedrāli — tajā attēlota Jaunava Marija, ko ieskauj Bībeles ķēniņi un pravieši.</li>
+        <li>Stikla gabaliņus kopā turēja svina "diegi" — tāpēc katrai krāsu daļai apkārt ir tumša aptvere.</li>
+        <li>Logs vienmēr veidots ar rotācijas simetriju ap centru — tā radās sajūta par nemainīgu, dievišķu kārtību.</li>
+      </ul>
+    </div>
+  </header>
+
+  <div class="tabbar">
+    <div class="tab active" data-mode="1"><span class="n">1</span>Vienkāršā vitrāža</div>
+    <div class="tab" data-mode="2"><span class="n">2</span>Sarežģītā vitrāža</div>
+    <div class="tab" data-mode="3"><span class="n">3</span>Kombinators</div>
+    <div class="tab" data-mode="4"><span class="n">4</span>Brīvā zīmēšana</div>
+  </div>
+
+  <!-- MODE 1 -->
+  <div class="mode-panel active" id="panel1">
+    <p class="mode-desc">Gatava, blīvi piepildīta figūru kombinācija — klikšķini uz laukumiem un aizpildi tos ar krāsu.</p>
+    <div class="stage single">
+      <div class="panel"><div class="canvas-holder"><svg id="svg1" viewBox="0 0 500 500"></svg></div></div>
+    </div>
+    <div class="ctrlbar">
+      <div class="ctrl-row"><div class="ctrl-group wide"><label class="title">Vitrāžas krāsu palete</label><div class="swatches" id="palette1"></div></div></div>
+      <div class="btn-row">
+        <button class="action btn-clear" data-clear="1">Notīrīt zīmējumu</button>
+        <button class="action btn-download" data-download="1">Lejupielādēt PNG</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODE 2 -->
+  <div class="mode-panel" id="panel2">
+    <p class="mode-desc">Sarežģītāka, vēl blīvāka kombinācija ar vairāk slāņiem un posmiem.</p>
+    <div class="stage single">
+      <div class="panel"><div class="canvas-holder"><svg id="svg2" viewBox="0 0 500 500"></svg></div></div>
+    </div>
+    <div class="ctrlbar">
+      <div class="ctrl-row"><div class="ctrl-group wide"><label class="title">Vitrāžas krāsu palete</label><div class="swatches" id="palette2"></div></div></div>
+      <div class="btn-row">
+        <button class="action btn-clear" data-clear="2">Notīrīt zīmējumu</button>
+        <button class="action btn-download" data-download="2">Lejupielādēt PNG</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODE 3 -->
+  <div class="mode-panel" id="panel3">
+    <p class="mode-desc">Katram gredzenam izvēlies 1–3 figūru veidus (tie sadalīsies gredzena joslā bez tukšām vietām), tad ar zīmēšanas rīku pievieno brīvroku detaļas.</p>
+    <div class="stage">
+      <div class="panel">
+        <h2>Redaktors</h2>
+        <div class="sub">Šī viena šķēle atkārtosies visapkārt →</div>
+        <div class="canvas-holder"><svg id="editorSvg3" viewBox="0 0 500 500"></svg></div>
+      </div>
+      <div class="panel preview-holder">
+        <h2>Pilnais skats</h2>
+        <div class="sub">Tavs rožu logs — dzīvs un simetrisks</div>
+        <div class="canvas-holder"><svg id="previewSvg3" viewBox="0 0 500 500"></svg></div>
+      </div>
+    </div>
+    <div class="ctrlbar">
+      <div class="ctrl-row">
+        <div class="ctrl-group">
+          <label class="title">Simetrija</label>
+          <select id="symmetrySelect3" class="stylized">
+            <option value="6">6 daļas</option>
+            <option value="8" selected>8 daļas</option>
+            <option value="10">10 daļas</option>
+            <option value="12">12 daļas</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <label class="title">Gredzenu skaits</label>
+          <select id="ringsSelect3" class="stylized">
+            <option value="3">3 gredzeni</option>
+            <option value="4" selected>4 gredzeni</option>
+            <option value="5">5 gredzeni</option>
+            <option value="6">6 gredzeni</option>
+          </select>
+        </div>
+        <div class="ctrl-group wide"><label class="title">Gredzenu figūras (klikšķini, lai iekļautu 1–3)</label><div id="ringShapeControls"></div></div>
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-group wide"><label class="title">Vitrāžas krāsu palete</label><div class="swatches" id="palette3"></div></div>
+      </div>
+      <div class="btn-row">
+        <button class="action btn-toggle active" id="paintToolBtn">🖌 Krāsot</button>
+        <button class="action btn-toggle" id="drawToolBtn">✏️ Zīmēt detaļas</button>
+        <button class="action btn-clear" id="undoBtn3">Atcelt pēdējo līniju</button>
+        <button class="action btn-clear" data-clear="3">Notīrīt zīmējumu</button>
+        <button class="action btn-download" data-download="3">Lejupielādēt PNG</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODE 4 -->
+  <div class="mode-panel" id="panel4">
+    <p class="mode-desc">Zīmē melnas kontūras tikai iezīmētajā (nedaudz tumšākā) daļā, tad piepildi ar krāsu — viss atkārtosies simetriski "Pilnajā skatā".</p>
+    <div class="stage">
+      <div class="panel">
+        <h2>Redaktors — 1 daļa</h2>
+        <div class="sub">Zīmē un krāso šeit</div>
+        <div class="canvas-holder">
+          <div class="canvas-stack">
+            <canvas id="drawCanvas" width="600" height="600"></canvas>
+            <canvas id="guideCanvas4" width="600" height="600"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="panel preview-holder">
+        <h2>Pilnais skats</h2>
+        <div class="sub">Atkārtojas simetriski</div>
+        <div class="canvas-holder">
+          <canvas id="previewCanvas4" width="600" height="600" style="width:100%;height:auto;border-radius:16px;"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="ctrlbar">
+      <div class="ctrl-row">
+        <div class="ctrl-group">
+          <label class="title">Simetrija</label>
+          <select id="symmetrySelect4" class="stylized">
+            <option value="6">6 daļas</option>
+            <option value="8" selected>8 daļas</option>
+            <option value="12">12 daļas</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <label class="title">Otas biezums</label>
+          <div class="btn-row" style="margin-top:0;">
+            <button class="action btn-toggle" data-brush="3">Plāna</button>
+            <button class="action btn-toggle active" data-brush="6">Vidēja</button>
+            <button class="action btn-toggle" data-brush="10">Bieza</button>
+          </div>
+        </div>
+        <div class="ctrl-group wide"><label class="title">Vitrāžas krāsu palete</label><div class="swatches" id="palette4"></div></div>
+      </div>
+      <div class="btn-row">
+        <button class="action btn-toggle active" id="drawModeBtn4">✏️ Zīmēt kontūras</button>
+        <button class="action btn-toggle" id="fillModeBtn4">🪣 Pildīt ar krāsu</button>
+        <button class="action btn-clear" data-clear="4">Notīrīt zīmējumu</button>
+        <button class="action btn-download" data-download="4">Lejupielādēt PNG</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>Rīks nesaglabā datus — katra klase to sāk no jauna. · visaskola.lv</footer>
+</div>
+
+<script>
+(function(){
+  const NS = 'http://www.w3.org/2000/svg';
+  const CX = 250, CY = 250;
+  const PALETTE = ['#6b2fa0','#9b4dca','#c0359c','#4a2c7a','#2a3f8f','#1f8a5f','#e8b923','#b0233b','#e85d75','#f2ecff'];
+  let selectedColor = PALETTE[0];
+
+  function f(n){ return Math.round(n*100)/100; }
+  function polar(r,angDeg){
+    const rad = (angDeg-90)*Math.PI/180;
+    return { x: CX + r*Math.cos(rad), y: CY + r*Math.sin(rad) };
+  }
+  function petalPath(r0,r1,aCenter,halfAngle){
+    const baseL = polar(r0, aCenter-halfAngle);
+    const baseR = polar(r0, aCenter+halfAngle);
+    const tip = polar(r1, aCenter);
+    const rMid = (r0+r1)/2*1.05;
+    const ctrlL = polar(rMid, aCenter-halfAngle*1.1);
+    const ctrlR = polar(rMid, aCenter+halfAngle*1.1);
+    return `M ${f(baseL.x)} ${f(baseL.y)} Q ${f(ctrlL.x)} ${f(ctrlL.y)} ${f(tip.x)} ${f(tip.y)} Q ${f(ctrlR.x)} ${f(ctrlR.y)} ${f(baseR.x)} ${f(baseR.y)} A ${f(r0)} ${f(r0)} 0 0 0 ${f(baseL.x)} ${f(baseL.y)} Z`;
+  }
+  function diamondPath(r0,r1,aCenter,halfAngle){
+    const bottom = polar(r0, aCenter);
+    const left = polar((r0+r1)/2, aCenter-halfAngle);
+    const top = polar(r1, aCenter);
+    const right = polar((r0+r1)/2, aCenter+halfAngle);
+    return `M ${f(bottom.x)} ${f(bottom.y)} L ${f(left.x)} ${f(left.y)} L ${f(top.x)} ${f(top.y)} L ${f(right.x)} ${f(right.y)} Z`;
+  }
+  function annulusSectorPath(r0,r1,a0,a1){
+    const p0=polar(r0,a0), p1=polar(r1,a0), p2=polar(r1,a1), p3=polar(r0,a1);
+    return `M ${f(p0.x)} ${f(p0.y)} L ${f(p1.x)} ${f(p1.y)} A ${f(r1)} ${f(r1)} 0 0 1 ${f(p2.x)} ${f(p2.y)} L ${f(p3.x)} ${f(p3.y)} A ${f(r0)} ${f(r0)} 0 0 0 ${f(p0.x)} ${f(p0.y)} Z`;
+  }
+
+  const paletteContainers = ['palette1','palette2','palette3','palette4'];
+  function buildPalettes(){
+    paletteContainers.forEach(id=>{
+      const wrap = document.getElementById(id);
+      if(!wrap) return;
+      wrap.innerHTML = '';
+      PALETTE.forEach(c=>{
+        const sw = document.createElement('div');
+        sw.className = 'swatch' + (c===selectedColor ? ' selected' : '');
+        sw.style.background = c;
+        sw.addEventListener('click', ()=>{ selectedColor = c; buildPalettes(); });
+        wrap.appendChild(sw);
+      });
+      const custom = document.createElement('input');
+      custom.type = 'color';
+      custom.className = 'swatch';
+      custom.value = selectedColor.startsWith('#') ? selectedColor : '#ffffff';
+      custom.title = 'Izvēlies savu krāsu';
+      custom.addEventListener('input', e=>{ selectedColor = e.target.value; buildPalettes(); });
+      wrap.appendChild(custom);
+    });
+  }
+
+  function svgToPngDownload(svgEl, filename){
+    const bgRect = `<rect x="0" y="0" width="500" height="500" fill="#0d0a14"/>`;
+    let svgData = new XMLSerializer().serializeToString(svgEl);
+    if(!svgData.includes('xmlns=')) svgData = svgData.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+    svgData = svgData.replace(/(<svg[^>]*>)/, `$1${bgRect}`);
+    const blob = new Blob([svgData], {type:'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = function(){
+      const canvas = document.createElement('canvas');
+      canvas.width = 1000; canvas.height = 1000;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img,0,0,1000,1000);
+      URL.revokeObjectURL(url);
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    };
+    img.src = url;
+  }
+
+  // ============ MODE 1 & 2 : fixed dense rosettes ============
+  function buildFixedRosette(svgId, ringsConfig, hubRadius, hubDefault){
+    const svgEl = document.getElementById(svgId);
+    svgEl.innerHTML = '';
+    const rim = document.createElementNS(NS,'circle');
+    rim.setAttribute('cx',CX); rim.setAttribute('cy',CY);
+    rim.setAttribute('r', ringsConfig.outerMost+10);
+    rim.setAttribute('class','rim');
+    svgEl.appendChild(rim);
+
+    ringsConfig.rings.forEach(ring=>{
+      const angleStep = 360/ring.count;
+      for(let k=0;k<ring.count;k++){
+        const aCenter = k*angleStep + (ring.offset||0);
+        let el;
+        if(ring.type==='circle'){
+          el = document.createElementNS(NS,'circle');
+          const c = polar(ring.rMid, aCenter);
+          el.setAttribute('cx', f(c.x)); el.setAttribute('cy', f(c.y)); el.setAttribute('r', ring.radius);
+        } else if(ring.type==='petal'){
+          el = document.createElementNS(NS,'path');
+          el.setAttribute('d', petalPath(ring.rInner, ring.rOuter, aCenter, angleStep*(ring.widthFactor||0.42)));
+        } else {
+          el = document.createElementNS(NS,'path');
+          el.setAttribute('d', diamondPath(ring.rInner, ring.rOuter, aCenter, angleStep*(ring.widthFactor||0.38)));
+        }
+        el.setAttribute('class','cell');
+        el.setAttribute('fill','rgba(255,255,255,0.05)');
+        el.addEventListener('click', ()=>{ el.setAttribute('fill', selectedColor); });
+        svgEl.appendChild(el);
+      }
+    });
+
+    const hub = document.createElementNS(NS,'circle');
+    hub.setAttribute('cx',CX); hub.setAttribute('cy',CY); hub.setAttribute('r', hubRadius);
+    hub.setAttribute('fill', hubDefault); hub.setAttribute('class','hub');
+    hub.addEventListener('click', ()=>{ hub.setAttribute('fill', selectedColor); });
+    svgEl.appendChild(hub);
+  }
+
+  const template1 = { outerMost:205, rings:[
+    {type:'circle', count:8, rMid:62, radius:18},
+    {type:'diamond',count:8, rInner:56, rOuter:97, offset:22.5, widthFactor:0.4},
+    {type:'petal',  count:8, rInner:92, rOuter:150, widthFactor:0.44},
+    {type:'circle', count:8, rMid:150, radius:16, offset:22.5},
+    {type:'diamond',count:8, rInner:146, rOuter:205, widthFactor:0.4}
+  ]};
+  const template2 = { outerMost:205, rings:[
+    {type:'circle', count:12, rMid:50, radius:12},
+    {type:'diamond',count:12, rInner:44, rOuter:78, offset:15, widthFactor:0.42},
+    {type:'petal',  count:12, rInner:74, rOuter:114, widthFactor:0.46},
+    {type:'circle', count:12, rMid:114, radius:11, offset:15},
+    {type:'diamond',count:12, rInner:110, rOuter:156, widthFactor:0.4},
+    {type:'petal',  count:12, rInner:150, rOuter:205, offset:15, widthFactor:0.42}
+  ]};
+
+  function renderMode1(){ buildFixedRosette('svg1', template1, 40, '#e8b923'); }
+  function renderMode2(){ buildFixedRosette('svg2', template2, 32, '#e8b923'); }
+
+  document.querySelector('[data-clear="1"]').addEventListener('click', renderMode1);
+  document.querySelector('[data-clear="2"]').addEventListener('click', renderMode2);
+  document.querySelector('[data-download="1"]').addEventListener('click', ()=> svgToPngDownload(document.getElementById('svg1'),'vitraza-1.png'));
+  document.querySelector('[data-download="2"]').addEventListener('click', ()=> svgToPngDownload(document.getElementById('svg2'),'vitraza-2.png'));
+
+  // ============ MODE 3 : combinator (1-3 shapes per ring) ============
+  const R_INNER3 = 44, R_OUTER3 = 205;
+  let N3 = 8, RINGS3 = 4;
+  let ringShapes3 = [];
+  let colorMap3 = {};
+  let hubColor3 = '#e8b923';
+  let freehandStrokes3 = [];
+  let tool3 = 'paint';
+  let currentStrokePts = [];
+
+  function defaultRingShapes(i){ return [['petal'],['circle'],['diamond']][i%3]; }
+  function initRingShapes3(){ ringShapes3 = Array.from({length:RINGS3}, (_,i)=> defaultRingShapes(i).slice()); }
+  initRingShapes3();
+
+  function rebuildRingControls(){
+    const wrap = document.getElementById('ringShapeControls');
+    wrap.innerHTML = '';
+    const shapeDefs = [['petal','Ziedlapa'],['circle','Aplītis'],['diamond','Rombs']];
+    for(let i=0;i<RINGS3;i++){
+      const row = document.createElement('div');
+      row.className = 'ring-shape-row';
+      const label = document.createElement('span');
+      label.className = 'rlabel';
+      label.textContent = 'Gredzens ' + (i+1);
+      row.appendChild(label);
+      shapeDefs.forEach(([val,txt])=>{
+        const chip = document.createElement('div');
+        chip.className = 'chip' + (ringShapes3[i].includes(val) ? ' active' : '');
+        chip.textContent = txt;
+        chip.addEventListener('click', ()=>{
+          const idx = ringShapes3[i].indexOf(val);
+          if(idx>=0){
+            if(ringShapes3[i].length>1) ringShapes3[i].splice(idx,1);
+          } else {
+            if(ringShapes3[i].length<3) ringShapes3[i].push(val);
+          }
+          colorMap3 = {};
+          rebuildRingControls();
+          renderMode3();
+        });
+        row.appendChild(chip);
+      });
+      wrap.appendChild(row);
+    }
+  }
+
+  function wedgeAngle3(){ return 360/N3; }
+  function bandWidth3(){ return (R_OUTER3-R_INNER3)/RINGS3; }
+
+  function buildWedgeContent(){
+    const g = document.createElementNS(NS,'g');
+    const wa = wedgeAngle3(), bw = bandWidth3();
+    for(let i=0;i<RINGS3;i++){
+      const r0 = R_INNER3 + i*bw, r1 = R_INNER3 + (i+1)*bw;
+      const shapes = ringShapes3[i];
+      const L = shapes.length;
+      const slot = wa/L;
+      shapes.forEach((shape,j)=>{
+        const aCenter = -wa/2 + (j+0.5)*slot;
+        let el;
+        if(shape==='circle'){
+          el = document.createElementNS(NS,'circle');
+          const c = polar((r0+r1)/2, aCenter);
+          el.setAttribute('cx', f(c.x)); el.setAttribute('cy', f(c.y));
+          el.setAttribute('r', f(Math.min(bw,slot*2.6)*0.34));
+        } else if(shape==='petal'){
+          el = document.createElementNS(NS,'path');
+          el.setAttribute('d', petalPath(r0, r1, aCenter, slot/2*0.86));
+        } else {
+          el = document.createElementNS(NS,'path');
+          el.setAttribute('d', diamondPath(r0, r1, aCenter, slot/2*0.8));
+        }
+        el.setAttribute('class','cell');
+        const key = i+'-'+j;
+        el.setAttribute('fill', colorMap3[key] || 'rgba(255,255,255,0.05)');
+        el.dataset.key = key;
+        g.appendChild(el);
+      });
+    }
+    freehandStrokes3.forEach(d=>{
+      const p = document.createElementNS(NS,'path');
+      p.setAttribute('d', d.d);
+      p.setAttribute('stroke', d.color);
+      p.setAttribute('stroke-width', 3);
+      p.setAttribute('class','freehand-line');
+      g.appendChild(p);
+    });
+    return g;
+  }
+
+  function ensureClip3(svgEl){
+    let defs = svgEl.querySelector('defs');
+    if(!defs){ defs = document.createElementNS(NS,'defs'); svgEl.insertBefore(defs, svgEl.firstChild); }
+    defs.innerHTML = '';
+    const clip = document.createElementNS(NS,'clipPath');
+    clip.setAttribute('id','wedgeClip3');
+    const path = document.createElementNS(NS,'path');
+    const wa = wedgeAngle3();
+    path.setAttribute('d', annulusSectorPath(R_INNER3-6, R_OUTER3+6, -wa/2, wa/2));
+    clip.appendChild(path);
+    defs.appendChild(clip);
+  }
+
+  function renderMode3(){
+    const editorSvg = document.getElementById('editorSvg3');
+    const previewSvg = document.getElementById('previewSvg3');
+    editorSvg.innerHTML = ''; previewSvg.innerHTML = '';
+    ensureClip3(editorSvg); ensureClip3(previewSvg);
+
+    [editorSvg, previewSvg].forEach(svgEl=>{
+      const rim = document.createElementNS(NS,'circle');
+      rim.setAttribute('cx',CX); rim.setAttribute('cy',CY); rim.setAttribute('r', R_OUTER3+10);
+      rim.setAttribute('class','rim');
+      svgEl.appendChild(rim);
+    });
+
+    const editorClipG = document.createElementNS(NS,'g');
+    editorClipG.setAttribute('clip-path','url(#wedgeClip3)');
+    editorClipG.appendChild(buildWedgeContent());
+    editorSvg.appendChild(editorClipG);
+    editorSvg.querySelectorAll('.cell').forEach(el=>{
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', ()=>{
+        if(tool3!=='paint') return;
+        colorMap3[el.dataset.key] = selectedColor;
+        renderMode3();
+      });
+    });
+
+    const wa = wedgeAngle3();
+    for(let k=0;k<N3;k++){
+      const rotG = document.createElementNS(NS,'g');
+      rotG.setAttribute('transform', `rotate(${f(k*wa)} ${CX} ${CY})`);
+      const clipG = document.createElementNS(NS,'g');
+      clipG.setAttribute('clip-path','url(#wedgeClip3)');
+      clipG.appendChild(buildWedgeContent());
+      rotG.appendChild(clipG);
+      previewSvg.appendChild(rotG);
+    }
+
+    [editorSvg, previewSvg].forEach(svgEl=>{
+      const hub = document.createElementNS(NS,'circle');
+      hub.setAttribute('cx',CX); hub.setAttribute('cy',CY); hub.setAttribute('r', R_INNER3-6);
+      hub.setAttribute('fill', hubColor3); hub.setAttribute('class','hub');
+      hub.addEventListener('click', ()=>{
+        if(svgEl.id!=='editorSvg3' || tool3!=='paint') return;
+        hubColor3 = selectedColor; renderMode3();
+      });
+      svgEl.appendChild(hub);
+    });
+
+    attachFreehandEvents();
+  }
+
+  function attachFreehandEvents(){
+    const editorSvg = document.getElementById('editorSvg3');
+    editorSvg.onpointerdown = null; editorSvg.onpointermove = null; editorSvg.onpointerup = null;
+    if(tool3!=='draw') return;
+
+    function svgPoint(evt){
+      const pt = editorSvg.createSVGPoint();
+      pt.x = evt.clientX; pt.y = evt.clientY;
+      const ctm = editorSvg.getScreenCTM().inverse();
+      const loc = pt.matrixTransform(ctm);
+      return { x: f(loc.x), y: f(loc.y) };
+    }
+
+    let drawing = false;
+    editorSvg.addEventListener('pointerdown', e=>{
+      drawing = true;
+      const p = svgPoint(e);
+      currentStrokePts = [`M ${p.x} ${p.y}`];
+      renderLivePreviewStroke();
+    });
+    editorSvg.addEventListener('pointermove', e=>{
+      if(!drawing) return;
+      const p = svgPoint(e);
+      currentStrokePts.push(`L ${p.x} ${p.y}`);
+      renderLivePreviewStroke();
+    });
+    window.addEventListener('pointerup', ()=>{
+      if(!drawing) return;
+      drawing = false;
+      if(currentStrokePts.length>1){
+        freehandStrokes3.push({ d: currentStrokePts.join(' '), color: selectedColor });
+        renderMode3();
+      }
+      currentStrokePts = [];
+    });
+  }
+  function renderLivePreviewStroke(){
+    const editorSvg = document.getElementById('editorSvg3');
+    let live = editorSvg.querySelector('#liveStroke');
+    if(!live){
+      live = document.createElementNS(NS,'path');
+      live.setAttribute('id','liveStroke');
+      live.setAttribute('class','freehand-line');
+      live.setAttribute('stroke', selectedColor);
+      live.setAttribute('stroke-width', 3);
+      editorSvg.appendChild(live);
+    }
+    live.setAttribute('d', currentStrokePts.join(' '));
+  }
+
+  document.getElementById('symmetrySelect3').addEventListener('change', e=>{
+    N3 = parseInt(e.target.value,10);
+    colorMap3 = {}; freehandStrokes3 = [];
+    renderMode3();
+  });
+  document.getElementById('ringsSelect3').addEventListener('change', e=>{
+    RINGS3 = parseInt(e.target.value,10);
+    initRingShapes3();
+    colorMap3 = {}; freehandStrokes3 = [];
+    rebuildRingControls();
+    renderMode3();
+  });
+  document.getElementById('paintToolBtn').addEventListener('click', ()=>{
+    tool3='paint';
+    document.getElementById('paintToolBtn').classList.add('active');
+    document.getElementById('drawToolBtn').classList.remove('active');
+    attachFreehandEvents();
+  });
+  document.getElementById('drawToolBtn').addEventListener('click', ()=>{
+    tool3='draw';
+    document.getElementById('drawToolBtn').classList.add('active');
+    document.getElementById('paintToolBtn').classList.remove('active');
+    attachFreehandEvents();
+  });
+  document.getElementById('undoBtn3').addEventListener('click', ()=>{
+    freehandStrokes3.pop();
+    renderMode3();
+  });
+  document.querySelector('[data-clear="3"]').addEventListener('click', ()=>{
+    colorMap3 = {}; freehandStrokes3 = []; hubColor3 = '#e8b923';
+    renderMode3();
+  });
+  document.querySelector('[data-download="3"]').addEventListener('click', ()=> svgToPngDownload(document.getElementById('previewSvg3'),'vitraza-kombinators.png'));
+
+  // ============ MODE 4 : free drawing in 1 wedge, mirrored full view ============
+  const drawCanvas = document.getElementById('drawCanvas');
+  const guideCanvas4 = document.getElementById('guideCanvas4');
+  const previewCanvas4 = document.getElementById('previewCanvas4');
+  const dctx = drawCanvas.getContext('2d');
+  const gctx4 = guideCanvas4.getContext('2d');
+  const pctx4 = previewCanvas4.getContext('2d');
+  const CANVAS_BG = '#332b47';
+  const CX4 = 300, CY4 = 300, R_INNER4 = 60, R_OUTER4 = 250;
+  let N4 = 8;
+  let brush4 = 6;
+  let toolMode4 = 'draw';
+  let isDrawing4 = false;
+
+  function wedgeAngle4(){ return 360/N4; }
+  function polar4(r,angDeg){
+    const rad = (angDeg-90)*Math.PI/180;
+    return { x: CX4 + r*Math.cos(rad), y: CY4 + r*Math.sin(rad) };
+  }
+  function wedgeTracePath(ctx, wa){
+    const a0=-wa/2, a1=wa/2;
+    const iL = polar4(R_INNER4,a0), oL = polar4(R_OUTER4,a0), iR = polar4(R_INNER4,a1);
+    ctx.beginPath();
+    ctx.moveTo(iL.x,iL.y);
+    ctx.lineTo(oL.x,oL.y);
+    ctx.arc(CX4,CY4,R_OUTER4,(a0-90)*Math.PI/180,(a1-90)*Math.PI/180,false);
+    ctx.lineTo(iR.x,iR.y);
+    ctx.arc(CX4,CY4,R_INNER4,(a1-90)*Math.PI/180,(a0-90)*Math.PI/180,true);
+    ctx.closePath();
+  }
+
+  function initEditor4(){
+    dctx.fillStyle = CANVAS_BG;
+    dctx.fillRect(0,0,600,600);
+    const wa = wedgeAngle4();
+    wedgeTracePath(dctx, wa);
+    dctx.strokeStyle = '#000000';
+    dctx.lineWidth = 4;
+    dctx.stroke();
+    drawGuide4();
+    renderPreview4();
+  }
+  function drawGuide4(){
+    const wa = wedgeAngle4();
+    gctx4.clearRect(0,0,600,600);
+    gctx4.fillStyle = 'rgba(0,0,0,0.55)';
+    gctx4.fillRect(0,0,600,600);
+    gctx4.save();
+    wedgeTracePath(gctx4, wa);
+    gctx4.globalCompositeOperation = 'destination-out';
+    gctx4.fill();
+    gctx4.restore();
+    gctx4.save();
+    wedgeTracePath(gctx4, wa);
+    gctx4.clip();
+    gctx4.strokeStyle = 'rgba(232,185,35,0.32)';
+    gctx4.setLineDash([5,6]);
+    gctx4.lineWidth = 1;
+    [0.33,0.66].forEach(t=>{
+      const r = R_INNER4 + (R_OUTER4-R_INNER4)*t;
+      gctx4.beginPath(); gctx4.arc(CX4,CY4,r,0,Math.PI*2); gctx4.stroke();
+    });
+    gctx4.restore();
+  }
+
+  function canvasPoint4(evt){
+    const rect = drawCanvas.getBoundingClientRect();
+    const scaleX = drawCanvas.width/rect.width, scaleY = drawCanvas.height/rect.height;
+    return { x:(evt.clientX-rect.left)*scaleX, y:(evt.clientY-rect.top)*scaleY };
+  }
+
+  drawCanvas.addEventListener('pointerdown', e=>{
+    if(toolMode4==='fill'){
+      const p = canvasPoint4(e);
+      floodFill4(Math.round(p.x), Math.round(p.y), selectedColor);
+      renderPreview4();
+      return;
+    }
+    isDrawing4 = true;
+    const p = canvasPoint4(e);
+    dctx.strokeStyle = '#000000';
+    dctx.lineWidth = brush4;
+    dctx.lineCap = 'round'; dctx.lineJoin='round';
+    dctx.beginPath();
+    dctx.moveTo(p.x,p.y);
+  });
+  drawCanvas.addEventListener('pointermove', e=>{
+    if(!isDrawing4 || toolMode4!=='draw') return;
+    const p = canvasPoint4(e);
+    dctx.lineTo(p.x,p.y);
+    dctx.stroke();
+  });
+  window.addEventListener('pointerup', ()=>{
+    if(isDrawing4){ isDrawing4=false; renderPreview4(); }
+  });
+
+  function hexToRgb(hex){
+    const h = hex.replace('#','');
+    return { r: parseInt(h.substring(0,2),16), g: parseInt(h.substring(2,4),16), b: parseInt(h.substring(4,6),16) };
+  }
+  function floodFill4(x,y,fillHex){
+    const w = drawCanvas.width, h = drawCanvas.height;
+    if(x<0||y<0||x>=w||y>=h) return;
+    const imgData = dctx.getImageData(0,0,w,h);
+    const data = imgData.data;
+    const idx0 = (y*w+x)*4;
+    const startR=data[idx0], startG=data[idx0+1], startB=data[idx0+2];
+    const fill = hexToRgb(fillHex);
+    if(Math.abs(startR-fill.r)<10 && Math.abs(startG-fill.g)<10 && Math.abs(startB-fill.b)<10) return;
+    const tolerance = 40;
+    function matches(pos){
+      return Math.abs(data[pos]-startR)<=tolerance && Math.abs(data[pos+1]-startG)<=tolerance && Math.abs(data[pos+2]-startB)<=tolerance;
+    }
+    const stack = [[x,y]];
+    const visited = new Uint8Array(w*h);
+    let iterations = 0;
+    const maxIter = w*h*2;
+    while(stack.length && iterations < maxIter){
+      iterations++;
+      const [cx,cy] = stack.pop();
+      if(cx<0||cy<0||cx>=w||cy>=h) continue;
+      const vIdx = cy*w+cx;
+      if(visited[vIdx]) continue;
+      const pos = vIdx*4;
+      if(!matches(pos)) continue;
+      visited[vIdx] = 1;
+      data[pos]=fill.r; data[pos+1]=fill.g; data[pos+2]=fill.b; data[pos+3]=255;
+      stack.push([cx+1,cy],[cx-1,cy],[cx,cy+1],[cx,cy-1]);
+    }
+    dctx.putImageData(imgData,0,0);
+  }
+
+  function renderPreview4(){
+    const wa = wedgeAngle4();
+    const maskCanvas = document.createElement('canvas');
+    maskCanvas.width = 600; maskCanvas.height = 600;
+    const mctx = maskCanvas.getContext('2d');
+    wedgeTracePath(mctx, wa);
+    mctx.fillStyle = '#fff';
+    mctx.fill();
+    mctx.globalCompositeOperation = 'source-in';
+    mctx.drawImage(drawCanvas,0,0);
+
+    pctx4.fillStyle = '#170b26';
+    pctx4.fillRect(0,0,600,600);
+    for(let k=0;k<N4;k++){
+      pctx4.save();
+      pctx4.translate(CX4,CY4);
+      pctx4.rotate(k*wa*Math.PI/180);
+      pctx4.translate(-CX4,-CY4);
+      pctx4.drawImage(maskCanvas,0,0);
+      pctx4.restore();
+    }
+    pctx4.beginPath(); pctx4.arc(CX4,CY4,R_INNER4-10,0,Math.PI*2);
+    pctx4.fillStyle = '#e8b923'; pctx4.fill();
+    pctx4.strokeStyle = '#0a0710'; pctx4.lineWidth = 2.5; pctx4.stroke();
+    pctx4.beginPath(); pctx4.arc(CX4,CY4,R_OUTER4+8,0,Math.PI*2);
+    pctx4.strokeStyle = 'rgba(75,59,115,0.6)'; pctx4.lineWidth = 2; pctx4.stroke();
+  }
+
+  document.getElementById('symmetrySelect4').addEventListener('change', e=>{
+    N4 = parseInt(e.target.value,10);
+    initEditor4();
+  });
+  document.querySelectorAll('[data-brush]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      brush4 = parseInt(btn.dataset.brush,10);
+      document.querySelectorAll('[data-brush]').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+  document.getElementById('drawModeBtn4').addEventListener('click', ()=>{
+    toolMode4='draw';
+    document.getElementById('drawModeBtn4').classList.add('active');
+    document.getElementById('fillModeBtn4').classList.remove('active');
+  });
+  document.getElementById('fillModeBtn4').addEventListener('click', ()=>{
+    toolMode4='fill';
+    document.getElementById('fillModeBtn4').classList.add('active');
+    document.getElementById('drawModeBtn4').classList.remove('active');
+  });
+  document.querySelector('[data-clear="4"]').addEventListener('click', initEditor4);
+  document.querySelector('[data-download="4"]').addEventListener('click', ()=>{
+    const link = document.createElement('a');
+    link.download = 'vitraza-briva.png';
+    link.href = previewCanvas4.toDataURL('image/png');
+    link.click();
+  });
+
+  // ============ TABS ============
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.mode-panel').forEach(p=>p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel'+tab.dataset.mode).classList.add('active');
+    });
+  });
+  document.getElementById('infoToggle').addEventListener('click', ()=>{
+    document.getElementById('infoBox').classList.toggle('open');
+  });
+
+  // ============ INIT ============
+  buildPalettes();
+  renderMode1();
+  renderMode2();
+  rebuildRingControls();
+  renderMode3();
+  initEditor4();
+})();
+</script>
+</body>
+</html>
